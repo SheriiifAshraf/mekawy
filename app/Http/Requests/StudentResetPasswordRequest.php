@@ -22,7 +22,7 @@ class StudentResetPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|exists:students,email',
+            'phone' => 'required|string|exists:students,phone',
         ];
     }
 }

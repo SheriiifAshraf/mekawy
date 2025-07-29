@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\API\CodeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\API\CodeController;
 use App\Http\Controllers\API\ExamController;
+use App\Http\Controllers\API\GradeController;
 use App\Http\Controllers\API\HomeworkController;
 use App\Http\Controllers\API\LocationController;
 use App\Http\Controllers\API\StudentAuthController;
@@ -31,6 +32,11 @@ Route::group(['prefix' => 'auth'], function () {
 
 Route::group(['prefix' => 'location'], function () {
     Route::get('/', [LocationController::class, 'index']);
+});
+
+
+Route::group(['prefix' => 'grades'], function () {
+    Route::get('by-stage/{stage_id}', [GradeController::class, 'byStage']);
 });
 
 Route::group(['middleware' => 'auth:student'], function () {

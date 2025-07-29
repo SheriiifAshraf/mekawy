@@ -3,18 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Hash;
 
-
 class Student extends User
 {
     use HasApiTokens, HasFactory, Notifiable;
+
     protected $table = 'students';
+
     protected $guarded = [];
 
     protected function password(): Attribute
@@ -57,5 +57,15 @@ class Student extends User
     public function codes()
     {
         return $this->hasMany(Code::class, 'student_id');
+    }
+
+    public function stage()
+    {
+        return $this->belongsTo(EducationStage::class, 'education_stage_id');
+    }
+
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class, 'grade_id');
     }
 }

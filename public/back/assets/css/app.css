@@ -633,7 +633,7 @@ a {
 
 .auth-cover-left {
 	display: flex;
-	background-color: #f7f7ff;
+	background-color: #FBE6CC;
 	min-height: 100vh;
 
 }
@@ -2127,7 +2127,7 @@ input::placeholder {
 .user-img {
 	width: 42px;
 	height: 42px;
-	border-radius: 50%;
+	/* border-radius: 50%; */
 	border: 0 solid #e5e5e5;
 	padding: 0;
 }

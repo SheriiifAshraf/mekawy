@@ -14,20 +14,27 @@ class StudentResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return
-            [
-                'id' => $this->id,
-                'first_name' => $this->first_name,
-                'last_name' => $this->last_name,
-                'phone' => $this->phone,
-                'father_phone' => $this->father_phone,
-                'token' => $this->token,
-                'location' => [
-                    'id' => $this->location->id,
-                    'name' => $this->location->name,
-                ],
-                'email' => $this->email
-            ];
+        return [
+            'id'            => $this->id,
+            'first_name'    => $this->first_name,
+            'middle_name'   => $this->middle_name,
+            'last_name'     => $this->last_name,
+            'phone'         => $this->phone,
+            'father_phone'  => $this->father_phone,
+            'token'         => $this->token,
+            'location'      => [
+                'id'    => $this->location?->id,
+                'name'  => $this->location?->name,
+            ],
+            'education_stage' => [
+                'id'   => $this->stage?->id,
+                'name' => $this->stage?->name,
+            ],
+            'grade' => [
+                'id'   => $this->grade?->id,
+                'name' => $this->grade?->name,
+            ],
+        ];
     }
 
     public function __construct($resource, $token)

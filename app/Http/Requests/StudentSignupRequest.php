@@ -22,13 +22,15 @@ class StudentSignupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => 'required|string',
-            'last_name' => 'required|string',
-            'phone' => 'required|string|unique:students',
-            'father_phone' => 'required|string|different:phone',
-            'password' => 'required|confirmed|string|min:8',
-            'location_id' => 'required|exists:locations,id',
-            'email' => 'required|email|unique:students',
+            'first_name'    => 'required|string',
+            'middle_name'   => 'required|string',
+            'last_name'     => 'required|string',
+            'phone'         => 'required|string|unique:students',
+            'father_phone'  => 'required|string|different:phone',
+            'password'      => 'required|confirmed|string|min:8',
+            'location_id'   => 'required|exists:locations,id',
+            'education_stage_id' => 'required|exists:education_stages,id',
+            'grade_id' => 'required|exists:grades,id',
         ];
     }
 }

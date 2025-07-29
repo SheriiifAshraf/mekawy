@@ -6,6 +6,7 @@ use App\Jobs\SendMail;
 use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Log;
 
 class StudentAuthRepository implements StudentAuthInterface
 {
@@ -31,13 +32,15 @@ class StudentAuthRepository implements StudentAuthInterface
     public function signup($request)
     {
         $model = $this->model->create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'phone' => $request->phone,
-            'father_phone' => $request->father_phone,
-            'password' => $request->password,
-            'location_id' => $request->location_id,
-            'email' => $request->email,
+            'first_name'    => $request->first_name,
+            'middle_name'   => $request->middle_name,
+            'last_name'     => $request->last_name,
+            'phone'         => $request->phone,
+            'father_phone'  => $request->father_phone,
+            'password'      => $request->password,
+            'location_id'   => $request->location_id,
+            'education_stage_id' => $request->education_stage_id,
+            'grade_id' => $request->grade_id,
         ]);
         if (!$model) {
             return ['status' => false, 'errors' => ['error' => [trans('crud.create', ['model' => 'user'])]]];
@@ -50,80 +53,85 @@ class StudentAuthRepository implements StudentAuthInterface
         if (!Auth::user()) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.forbidden')]]];
         }
+
         $user = Auth::user();
+
         if ($request->has('first_name')) {
-            $user->update([
-                'first_name' => $request->first_name,
-            ]);
+            $user->update(['first_name' => $request->first_name]);
         }
+
+        if ($request->has('middle_name')) {
+            $user->update(['middle_name' => $request->middle_name]);
+        }
+
         if ($request->has('last_name')) {
-            $user->update([
-                'last_name' => $request->last_name,
-            ]);
+            $user->update(['last_name' => $request->last_name]);
         }
+
         if ($request->has('phone')) {
-            $user->update([
-                'phone' => $request->phone,
-            ]);
+            $user->update(['phone' => $request->phone]);
         }
+
         if ($request->has('father_phone')) {
-            $user->update([
-                'father_phone' => $request->father_phone,
-            ]);
+            $user->update(['father_phone' => $request->father_phone]);
         }
+
+        if ($request->has('education_stage_id')) {
+            $user->update(['education_stage_id' => $request->education_stage_id]);
+        }
+
+        if ($request->has('grade_id')) {
+            $user->update(['grade_id' => $request->grade_id]);
+        }
+
         if ($request->has('password')) {
-            $user->update([
-                'password' => $request->password,
-            ]);
-        }
-        if ($request->has('email')) {
-            $user->update([
-                'email' => $request->email,
-            ]);
+            $user->update(['password' => $request->password]);
         }
 
         return ['status' => true];
     }
 
+
     public function resetPassword($request)
     {
         $otp = rand(111111, 999999);
-        $model = $this->model->where('email', $request->email)->first();
+        $model = $this->model->where('phone', $request->phone)->first();
         if (!$model) {
-            return ['status' => false, 'errors' => ['error' => [trans('auth.email')]]];
+            return ['status' => false, 'errors' => ['error' => [trans('auth.phone')]]];
         }
+
         $model->update(['otp' => $otp]);
-        $model->refresh();
-        dispatch(new SendMail($model->email, $model->otp));
+
+        send_sms($model->phone, "رمز التحقق الخاص بك: $otp");
+
         return ["status" => true];
     }
+
 
     public function pinCodeConfirmation($request)
     {
         $model = $this->model->where([
-            'email' => $request->email,
-        ])->first();
-        if (!$model) {
-            return ['status' => false, 'errors' => ['error' => [trans('auth.email')]]];
-        }
-        $model = $this->model->where([
+            'phone' => $request->phone,
             'otp' => $request->otp,
         ])->first();
+
         if (!$model) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.invalid', ['attribute' => 'otp'])]]];
         }
+
         $updatedAt = $model->updated_at;
-        $now = now();
-        $timeDifferenceInMinutes = $now->diffInMinutes($updatedAt);
-        if ($timeDifferenceInMinutes >= 5) {
+        if (now()->diffInMinutes($updatedAt) >= 5) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.invalid', ['attribute' => 'otp'])]]];
         }
+
         $model->update([
             'otp' => null,
-            'token' => \Illuminate\Support\Str::random(60),
+            'token' => \Str::random(60),
         ]);
+
         return ['status' => true, 'data' => $model];
     }
+
 
     public function confirmPassword($request)
     {

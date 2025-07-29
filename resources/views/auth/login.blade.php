@@ -2,8 +2,22 @@
 <html lang="en">
 
 @include('back.inc.head')
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700&display=swap" rel="stylesheet">
+
 
 <body>
+    <style>
+        body,
+        .form-label,
+        .form-control,
+        .btn,
+        h5,
+        p,
+        label {
+            font-family: 'Alexandria', sans-serif !important;
+        }
+    </style>
+
     <!--wrapper-->
     <div class="wrapper">
         <!--wrapper-->
@@ -16,7 +30,7 @@
                             class="col-12 col-xl-7 col-xxl-8 auth-cover-left align-items-center justify-content-center d-none d-xl-flex">
                             <div class="card shadow-none bg-transparent shadow-none rounded-0 mb-0">
                                 <div class="card-body">
-                                    <img src="{{ url('back/assets/images/login-cover.svg') }}"
+                                    <img src="{{ url('back/assets/images/freepik__a-man-sitting-on-a-chair-at-a-desk-working-on-a-co__65725.png') }}"
                                         class="img-fluid auth-img-cover-login" width="650" alt="" />
                                 </div>
                             </div>
@@ -28,8 +42,8 @@
                                 <div class="card-body p-sm-5" dir="rtl">
                                     <div class="">
                                         <div class="mb-3 text-center">
-                                            <img src="{{ url('back/assets/images/logo.png') }}" width="130"
-                                                alt="">
+                                            <img src="{{ url('back/assets/images/مستر أحمد مكاوي -01.png') }}"
+                                                width="130" alt="">
                                         </div>
                                         <div class="text-center mb-4">
                                             <h5 class="">جيو مكاوي</h5>
@@ -80,7 +94,10 @@
                                                     </div>
                                                     <div class="col-12">
                                                         <div class="d-grid">
-                                                            <button type="submit" class="btn btn-primary">تسجيل
+                                                            <button
+                                                                style="    background-color: #FFB97C;
+    border-color: #FFB97C;"
+                                                                type="submit" class="btn btn-primary">تسجيل
                                                                 الدخول</button>
                                                         </div>
                                                     </div>

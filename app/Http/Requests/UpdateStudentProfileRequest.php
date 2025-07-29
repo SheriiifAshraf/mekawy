@@ -22,10 +22,12 @@ class UpdateStudentProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => 'unique:students,phone,' . auth('student')->id(),
-            'father_phone' => 'different:phone',
-            'password' => 'confirmed|string|min:8',
-            'email' => 'email|unique:students,email,' . auth('student')->id(),
+            'first_name'    => 'sometimes|string',
+            'middle_name'   => 'sometimes|string',
+            'last_name'     => 'sometimes|string',
+            'phone'         => 'sometimes|unique:students,phone,' . auth('student')->id(),
+            'father_phone'  => 'sometimes|different:phone',
+            'password'      => 'sometimes|confirmed|string|min:8',
         ];
     }
 }
