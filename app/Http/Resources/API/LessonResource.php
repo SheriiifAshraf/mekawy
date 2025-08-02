@@ -47,7 +47,9 @@ class LessonResource extends JsonResource
                     'duration_hours' => $video->duration,
                     'duration_minutes' => $video->duration * 60,
                     'number_of_views' => $viewCount,
-                    'image' => new MediaResource($video->getFirstMedia('images')),
+                    'image' => $video->getFirstMedia('images')
+                        ? new MediaResource($video->getFirstMedia('images'))
+                        : null,
                 ];
             }),
         ];

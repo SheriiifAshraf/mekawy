@@ -2,11 +2,14 @@
 
 namespace App\Http\Repositories\StudentAuth;
 
+use Log;
+use Str;
+use Exception;
 use App\Jobs\SendMail;
 use App\Models\Student;
+use Twilio\Rest\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Log;
 
 class StudentAuthRepository implements StudentAuthInterface
 {
@@ -100,9 +103,12 @@ class StudentAuthRepository implements StudentAuthInterface
             return ['status' => false, 'errors' => ['error' => [trans('auth.phone')]]];
         }
 
-        $model->update(['otp' => $otp]);
+        $model->update([
+            'otp' => $otp,
+            'otp_expires_at' => now()->addMinutes(5)
+        ]);
 
-        send_sms($model->phone, "رمز التحقق الخاص بك: $otp");
+        $this->send_sms($model->phone, "رمز التحقق الخاص بك: $otp");
 
         return ["status" => true];
     }
@@ -110,26 +116,59 @@ class StudentAuthRepository implements StudentAuthInterface
 
     public function pinCodeConfirmation($request)
     {
-        $model = $this->model->where([
-            'phone' => $request->phone,
-            'otp' => $request->otp,
-        ])->first();
+        $model = $this->model->where('phone', $request->phone)
+            ->where('otp', $request->otp)
+            ->first();
 
         if (!$model) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.invalid', ['attribute' => 'otp'])]]];
         }
 
-        $updatedAt = $model->updated_at;
-        if (now()->diffInMinutes($updatedAt) >= 5) {
+        if (!$model->otp_expires_at || now()->greaterThan($model->otp_expires_at)) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.invalid', ['attribute' => 'otp'])]]];
         }
 
         $model->update([
             'otp' => null,
-            'token' => \Str::random(60),
+            'otp_expires_at' => null,
+            'token' => Str::random(60),
         ]);
 
         return ['status' => true, 'data' => $model];
+    }
+
+    private function send_sms($to, $message)
+    {
+        $to = preg_replace('/\s+/', '', $to);
+        $to = preg_replace('/^0+/', '', $to);
+        if (!str_starts_with($to, '+')) {
+            $to = '+20' . $to;
+        }
+
+        if (app()->environment('production')) {
+            $sid   = env('TWILIO_SID');
+            $token = env('TWILIO_AUTH_TOKEN');
+            $from  = env('TWILIO_FROM');
+        } else {
+            $sid   = env('TWILIO_TEST_SID');
+            $token = env('TWILIO_TEST_TOKEN');
+            $from  = '+15005550006';
+        }
+
+        $client = new Client($sid, $token);
+
+        try {
+            $sms = $client->messages->create($to, [
+                'from' => $from,
+                'body' => $message
+            ]);
+
+            Log::info("✅ SMS sent to {$to} - SID: {$sms->sid}");
+            return true;
+        } catch (Exception $e) {
+            Log::error("❌ SMS send failed to {$to}: " . $e->getMessage());
+            return false;
+        }
     }
 
 

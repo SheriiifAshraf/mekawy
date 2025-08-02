@@ -16,12 +16,14 @@ class VideoResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'lesson' => $this->lesson->name,
             'id' => $this->id,
-            'name' => $this->name,
-            'link' => $this->link,
-            'pdf' => new MediaResource($this->getFirstMedia('pdfs')),
-            'image' => new MediaResource($this->getFirstMedia('images')),
+            'title' => $this->name,
+            'duration_hours' => $this->duration,
+            'duration_minutes' => $this->duration * 60,
+            'number_of_views' => $this->view_count ?? 0,
+            'image' => new MediaResource(optional($this->getFirstMedia('images'))),
+            'pdf' => new MediaResource(optional($this->getFirstMedia('pdfs'))),
+            'locked' => $this->locked ?? true,
         ];
     }
 }

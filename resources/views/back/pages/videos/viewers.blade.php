@@ -42,7 +42,7 @@
                             @foreach ($students as $index => $student)
                                 <tr class="{{ $student->view_count > 0 ? '' : 'table-warning' }}">
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $student->first_name }} {{ $student->last_name }}</td>
+                                    <td>{{ $student->first_name }} {{ $student->middle_name }} {{ $student->last_name }}</td>
                                     <td>{{ $student->phone }}</td>
                                     <td>{{ $student->father_phone }}</td>
                                     <td>

@@ -31,6 +31,7 @@ Route::prefix('media')->group(function () {
 
 Route::group(['prefix' => 'courses'], function () {
     Route::get('', [CourseController::class, 'courses']);
+    Route::get('latest', [CourseController::class, 'latestCourses']);
 });
 Route::group(['prefix' => 'lessons'], function () {
     Route::get('{course}', [LessonController::class, 'lessons']);

@@ -57,10 +57,10 @@ class LessonController extends Controller
                 ->exists();
 
             if (!$isSubscribed) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not subscribed to this course.'
-                ], 403);
+                $isSubscribed = $student->subscriptions()
+                    ->where('course_id', $lesson->course->id)
+                    ->where('status', 1)
+                    ->exists();
             }
 
             $previousLesson = Lesson::where('id', '<', $lessonId)
@@ -110,8 +110,10 @@ class LessonController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => VideoResource::collection($lesson->videos->map(function ($video) {
+            'subscribed' => $isSubscribed,
+            'data' => VideoResource::collection($lesson->videos->map(function ($video) use ($isSubscribed) {
                 $video->view_count = $video->total_views;
+                $video->locked = !$isSubscribed;
                 return $video;
             })),
         ]);

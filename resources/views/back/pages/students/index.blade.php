@@ -87,8 +87,7 @@
                     <table id="example" class="table table-striped table-bordered">
                         <thead>
                             <tr>
-                                <th>الاسم الأول</th>
-                                <th>الاسم الأخير</th>
+                                <th>إسم الطالب</th>
                                 <th>رقم الهاتف</th>
                                 <th>رقم هاتف الأب</th>
                                 <th>العمليات</th>
@@ -97,7 +96,7 @@
                         <tbody>
                             @foreach ($students as $student)
                                 <tr>
-                                    <td>{{ $student->first_name }}</td>
+                                    <td>{{ $student->first_name }} {{ $student->middle_name }} {{ $student->last_name }}</td>
                                     <td>{{ $student->last_name }}</td>
                                     <td>{{ $student->phone }}</td>
                                     <td>{{ $student->father_phone }}</td>
@@ -158,8 +157,8 @@
                                             <div class="modal-dialog modal-lg modal-dialog-centered">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title">تفاصيل الطالب: {{ $student->first_name }}
-                                                            {{ $student->last_name }}</h5>
+                                                        <h5 class="modal-title">تفاصيل الطالب: <strong>{{ $student->first_name }} {{ $student->middle_name }}
+                                                            {{ $student->last_name }}</strong> </h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                                                             aria-label="Close"></button>
                                                     </div>
@@ -279,7 +278,7 @@
                                                         </div>
                                                         <div class="modal-body text-white">
                                                             <h3 class="text-white">هل أنت متأكد من حذف الطالب
-                                                                {{ $student->first_name }} {{ $student->last_name }} ؟
+                                                                {{ $student->first_name }} {{ $student->middle_name }} {{ $student->last_name }} ؟
                                                             </h3>
                                                         </div>
                                                         <div class="modal-footer">

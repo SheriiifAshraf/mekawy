@@ -22,7 +22,7 @@ class ConfirmTokenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required',
+            'phone' => 'required',
             'otp' => 'required|string|min:6|max:6',
         ];
     }

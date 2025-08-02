@@ -37,4 +37,36 @@ class CourseController extends Controller
             'data' => $courses,
         ]);
     }
+
+    public function latestCourses()
+    {
+        $student = Auth::guard('student')->user();
+
+        $courses = Course::with('lessons.videos')
+            ->latest()
+            ->take(3)
+            ->get();
+
+        $courses->transform(function ($course) use ($student) {
+            if ($course->free) {
+                $course->subscription_status = 'مجاني';
+            } else {
+                $isSubscribed = $student->subscriptions()
+                    ->where('course_id', $course->id)
+                    ->where('status', 1)
+                    ->exists();
+
+                $course->subscription_status = $isSubscribed ? 'مشترك بالفعل' : 'إشترك الآن';
+            }
+
+            return $course;
+        });
+
+        $courses = CourseResource::collection($courses);
+
+        return response()->json([
+            'success' => true,
+            'data' => $courses,
+        ]);
+    }
 }
