@@ -10,6 +10,7 @@ use App\Http\Controllers\API\HomeworkController;
 use App\Http\Controllers\API\LocationController;
 use App\Http\Controllers\API\StudentAuthController;
 use App\Http\Controllers\API\SubscriptionController;
+use App\Http\Controllers\API\EducationStageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,10 @@ Route::group(['prefix' => 'location'], function () {
     Route::get('/', [LocationController::class, 'index']);
 });
 
+
+Route::group(['prefix' => 'stages'], function () {
+    Route::get('/', [EducationStageController::class, 'index']);
+});
 
 Route::group(['prefix' => 'grades'], function () {
     Route::get('by-stage/{stage_id}', [GradeController::class, 'byStage']);
