@@ -11,6 +11,14 @@ class VideosViewer extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'completed'    => 'boolean',
+        'completed_at' => 'datetime',
+        'view_count'   => 'integer',
+        'created_at'   => 'datetime',
+        'updated_at'   => 'datetime',
+    ];
+
     public function video()
     {
         return $this->belongsTo(Video::class, 'video_id');
@@ -19,5 +27,10 @@ class VideosViewer extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function scopeCompleted($q)
+    {
+        return $q->where('completed', 1);
     }
 }

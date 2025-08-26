@@ -2,14 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Schema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Lesson extends Model
 {
     use HasFactory;
 
     protected $guarded = ['id'];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     public function course()
     {
@@ -18,6 +24,11 @@ class Lesson extends Model
 
     public function videos()
     {
-        return $this->hasMany(Video::class);
+        return $this->hasMany(Video::class)
+            ->when(
+                Schema::hasColumn('videos', 'position'),
+                fn($q) => $q->orderBy('position')->orderBy('id'),
+                fn($q) => $q->orderBy('id')
+            );
     }
 }

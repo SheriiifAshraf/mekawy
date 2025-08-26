@@ -13,6 +13,14 @@ class Video extends Model implements HasMedia
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'publish_at' => 'datetime',
+        'duration'   => 'integer',
+        'position'   => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     public function lesson()
     {
         return $this->belongsTo(Lesson::class);
@@ -29,8 +37,12 @@ class Video extends Model implements HasMedia
         $this->addMediaCollection('images');
     }
 
-    protected $casts = [
-        'publish_at' => 'datetime',
-        'duration' => 'integer', 
-    ];
+    public function scopeOrdered($q)
+    {
+        return $q->when(
+            \Schema::hasColumn($this->getTable(), 'position'),
+            fn($qq) => $qq->orderBy('position')->orderBy('id'),
+            fn($qq) => $qq->orderBy('id')
+        );
+    }
 }

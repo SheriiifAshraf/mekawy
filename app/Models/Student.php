@@ -54,6 +54,11 @@ class Student extends User
         return $this->hasMany(VideosViewer::class, 'student_id');
     }
 
+    public function completedVideoViews()
+    {
+        return $this->videoViews()->where('completed', 1);
+    }
+
     public function codes()
     {
         return $this->hasMany(Code::class, 'student_id');
