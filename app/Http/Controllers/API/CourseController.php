@@ -51,12 +51,16 @@ class CourseController extends Controller
             if ($course->free) {
                 $course->subscription_status = 'مجاني';
             } else {
-                $isSubscribed = $student->subscriptions()
-                    ->where('course_id', $course->id)
-                    ->where('status', 1)
-                    ->exists();
+                if ($student) {
+                    $isSubscribed = $student->subscriptions()
+                        ->where('course_id', $course->id)
+                        ->where('status', 1)
+                        ->exists();
 
-                $course->subscription_status = $isSubscribed ? 'مشترك بالفعل' : 'إشترك الآن';
+                    $course->subscription_status = $isSubscribed ? 'مشترك بالفعل' : 'إشترك الآن';
+                } else {
+                    $course->subscription_status = 'سجل الدخول لمشاهدة الكورس';
+                }
             }
 
             return $course;
