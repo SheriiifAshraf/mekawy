@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Video;
 use App\Models\Lesson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Requests\VideoRequest;
 use Illuminate\Support\Facades\Storage;
 
@@ -87,20 +88,29 @@ class VideoController extends Controller
     public function showViewers($videoId)
     {
         $video = Video::with('lesson.course')->findOrFail($videoId);
-
         $course = $video->lesson->course;
 
-        $subscribedStudents = $course->students()->select('students.id', 'first_name', 'last_name', 'phone', 'father_phone')->get();
+        if ($course->free) {
+            $students = DB::table('videos_viewers')
+                ->join('students', 'students.id', '=', 'videos_viewers.student_id')
+                ->where('video_id', $video->id)
+                ->select('students.id', 'students.first_name', 'students.last_name', 'students.phone', 'students.father_phone', 'videos_viewers.view_count')
+                ->get();
+        } else {
+            $subscribedStudents = $course->students()
+                ->select('students.id', 'first_name', 'last_name', 'phone', 'father_phone')
+                ->get();
 
-        $viewers = $video->viewers()
-            ->select('student_id', 'view_count')
-            ->get()
-            ->keyBy('student_id');
+            $viewers = $video->viewers()
+                ->select('student_id', 'view_count')
+                ->get()
+                ->keyBy('student_id');
 
-        $students = $subscribedStudents->map(function ($student) use ($viewers) {
-            $student->view_count = $viewers[$student->id]->view_count ?? 0;
-            return $student;
-        });
+            $students = $subscribedStudents->map(function ($student) use ($viewers) {
+                $student->view_count = $viewers[$student->id]->view_count ?? 0;
+                return $student;
+            });
+        }
 
         return view('back.pages.videos.viewers', compact('students', 'video'));
     }
