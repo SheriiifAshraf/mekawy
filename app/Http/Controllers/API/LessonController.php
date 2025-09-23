@@ -132,7 +132,7 @@ class LessonController extends Controller
             );
         }, 'course'])->firstOrFail();
 
-        $isSubscribed = $lesson->course->free ? true : $student->subscriptions()
+        $isSubscribed = $lesson->course->free || $student->subscriptions()
             ->where('course_id', $lesson->course_id)
             ->where('status', 1)
             ->exists();
