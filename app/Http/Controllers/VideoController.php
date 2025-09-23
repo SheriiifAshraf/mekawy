@@ -91,10 +91,9 @@ class VideoController extends Controller
         $course = $video->lesson->course;
 
         if ($course->free) {
-            $students = DB::table('videos_viewers')
-                ->join('students', 'students.id', '=', 'videos_viewers.student_id')
-                ->where('video_id', $video->id)
-                ->select('students.id', 'students.first_name', 'students.last_name', 'students.phone', 'students.father_phone', 'videos_viewers.view_count')
+            $students = Student::join('videos_viewers', 'students.id', '=', 'videos_viewers.student_id')
+                ->where('videos_viewers.video_id', $video->id)
+                ->select('students.id', 'students.first_name', 'students.middle_name', 'students.last_name', 'students.phone', 'students.father_phone', 'videos_viewers.view_count')
                 ->get();
         } else {
             $subscribedStudents = $course->students()
