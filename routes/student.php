@@ -44,12 +44,12 @@ Route::group(['prefix' => 'grades'], function () {
     Route::get('by-stage/{stage_id}', [GradeController::class, 'byStage']);
 });
 
-Route::group(['middleware' => 'auth:student'], function () {
+Route::group(['middleware' => ['auth:student', 'enforce.single.device']], function () {
 
     Route::group(['prefix' => 'auth'], function () {
         Route::post('logout', [StudentAuthController::class, 'logout']);
         Route::patch('update', [StudentAuthController::class, 'update']);
-        Route::get("profile", [StudentAuthController::class, 'profile']);
+        Route::get('profile', [StudentAuthController::class, 'profile']);
         Route::get('completed', [StudentAuthController::class, 'completed']);
     });
 

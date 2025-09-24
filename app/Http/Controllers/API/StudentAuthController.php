@@ -32,6 +32,14 @@ class StudentAuthController extends Controller
             return $this->ResponseService->json('Fail!', [], 400, $auth['errors']);
         }
         $token = $auth['data']->createToken('student')->plainTextToken;
+        $tokenModel = $auth['data']->tokens()->latest('id')->first();
+        if ($tokenModel) {
+            $tokenModel->device_id   = $auth['device_id'] ?? ($request->header('X-Device-ID') ?? $request->input('device_id'));
+            $tokenModel->device_name = $auth['device_name'] ?? ($request->header('X-Device-Name') ?? $request->input('device_name'));
+            $tokenModel->ip          = $request->ip();
+            $tokenModel->user_agent  = (string) $request->userAgent();
+            $tokenModel->save();
+        }
         $Student = new StudentResource($auth['data'], $token);
         return $this->ResponseService->Json("success", $Student, 200);
     }

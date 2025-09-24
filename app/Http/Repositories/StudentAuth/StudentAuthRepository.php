@@ -22,14 +22,45 @@ class StudentAuthRepository implements StudentAuthInterface
 
     public function login($request)
     {
+        $deviceId   = $request->header('X-Device-ID') ?? $request->input('device_id');
+        $deviceName = $request->header('X-Device-Name') ?? $request->input('device_name');
+
+        if (!$deviceId) {
+            return ['status' => false, 'errors' => ['error' => ['Device ID is required']]];
+        }
+
         $model = $this->model->where('phone', $request->phone)->first();
         if (!$model) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.email')]]];
         }
+
         if (!Hash::check($request->password, $model->password)) {
             return ['status' => false, 'errors' => ['error' => [trans('auth.password')]]];
         }
-        return ['status' => true, 'data' => $model];
+
+        $hasActiveOnOtherDevice = $model->tokens()
+            ->whereNull('expires_at')
+            ->where(function ($q) use ($deviceId) {
+                $q->whereNull('device_id')->orWhere('device_id', '!=', $deviceId);
+            })
+            ->exists();
+
+        if ($hasActiveOnOtherDevice) {
+            return [
+                'status' => false,
+                'errors' => ['error' => ['حسابك مسجل دخول على جهاز آخر. سجّل الخروج من الجهاز الأول ثم حاول مرة أخرى.']],
+                'code'   => 'OTHER_DEVICE_ACTIVE',
+            ];
+        }
+
+        $model->tokens()->where('device_id', $deviceId)->delete();
+
+        return [
+            'status'      => true,
+            'data'        => $model,
+            'device_id'   => $deviceId,
+            'device_name' => $deviceName,
+        ];
     }
 
     public function signup($request)
