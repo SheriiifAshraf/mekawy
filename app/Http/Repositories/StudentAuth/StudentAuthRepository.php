@@ -38,22 +38,26 @@ class StudentAuthRepository implements StudentAuthInterface
             return ['status' => false, 'errors' => ['error' => [trans('auth.password')]]];
         }
 
-        $hasActiveOnOtherDevice = $model->tokens()
-            ->whereNull('expires_at')
-            ->where(function ($q) use ($deviceId) {
-                $q->whereNull('device_id')->orWhere('device_id', '!=', $deviceId);
-            })
-            ->exists();
+        if (config('feature.single_device_login')) {
+            $hasActiveOnOtherDevice = $model->tokens()
+                ->whereNull('expires_at')
+                ->where(function ($q) use ($deviceId) {
+                    $q->whereNull('device_id')->orWhere('device_id', '!=', $deviceId);
+                })
+                ->exists();
 
-        if ($hasActiveOnOtherDevice) {
-            return [
-                'status' => false,
-                'errors' => ['error' => ['حسابك مسجل دخول على جهاز آخر. سجّل الخروج من الجهاز الأول ثم حاول مرة أخرى.']],
-                'code'   => 'OTHER_DEVICE_ACTIVE',
-            ];
+            if ($hasActiveOnOtherDevice) {
+                return [
+                    'status' => false,
+                    'errors' => ['error' => ['حسابك مسجل دخول على جهاز آخر. سجّل الخروج من الجهاز الأول ثم حاول مرة أخرى.']],
+                    'code'   => 'OTHER_DEVICE_ACTIVE',
+                ];
+            }
         }
 
-        $model->tokens()->where('device_id', $deviceId)->delete();
+        if (config('feature.single_device_login')) {
+            $model->tokens()->where('device_id', $deviceId)->delete();
+        }
 
         return [
             'status'      => true,
@@ -62,6 +66,7 @@ class StudentAuthRepository implements StudentAuthInterface
             'device_name' => $deviceName,
         ];
     }
+
 
     public function signup($request)
     {
