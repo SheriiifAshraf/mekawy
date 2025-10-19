@@ -173,39 +173,69 @@ class StudentAuthRepository implements StudentAuthInterface
         return ['status' => true, 'data' => $model];
     }
 
-    private function send_sms($to, $message)
-    {
-        $to = preg_replace('/\s+/', '', $to);
-        $to = preg_replace('/^0+/', '', $to);
-        if (!str_starts_with($to, '+')) {
-            $to = '+20' . $to;
-        }
+//     private function send_sms($to, $message)
+//     {
+//         $to = preg_replace('/\s+/', '', $to);
+//         $to = preg_replace('/^0+/', '', $to);
+//         if (!str_starts_with($to, '+')) {
+//             $to = '+20' . $to;
+//         }
 
-        if (app()->environment('production')) {
-            $sid   = env('TWILIO_SID');
-            $token = env('TWILIO_AUTH_TOKEN');
-            $from  = env('TWILIO_FROM');
-        } else {
-            $sid   = env('TWILIO_TEST_SID');
-            $token = env('TWILIO_TEST_TOKEN');
-            $from  = '+15005550006';
-        }
+//         if (app()->environment('production')) {
+//             $sid   = env('TWILIO_SID');
+//             $token = env('TWILIO_AUTH_TOKEN');
+//             $from  = env('TWILIO_FROM');
+//         } else {
+//             $sid   = env('TWILIO_TEST_SID');
+//             $token = env('TWILIO_TEST_TOKEN');
+//             $from  = '+15005550006';
+//         }
 
-        $client = new Client($sid, $token);
+//         $client = new Client($sid, $token);
 
-        try {
-            $sms = $client->messages->create($to, [
-                'from' => $from,
-                'body' => $message
-            ]);
+//         try {
+//             $sms = $client->messages->create($to, [
+//     'messagingServiceSid' => env('TWILIO_MESSAGING_SID'),
+//     'body' => $message,
+// ]);
+// ;
 
-            Log::info("✅ SMS sent to {$to} - SID: {$sms->sid}");
-            return true;
-        } catch (Exception $e) {
-            Log::error("❌ SMS send failed to {$to}: " . $e->getMessage());
-            return false;
-        }
+//             Log::info("✅ SMS sent to {$to} - SID: {$sms->sid}");
+//             return true;
+//         } catch (Exception $e) {
+//             Log::error("❌ SMS send failed to {$to}: " . $e->getMessage());
+//             return false;
+//         }
+//     }
+private function send_sms($to, $message)
+{
+    $to = preg_replace('/\s+/', '', $to);
+    $to = preg_replace('/^0+/', '', $to);
+    if (!str_starts_with($to, '+')) {
+        $to = '+20' . $to;
     }
+
+    $sid   = env('TWILIO_SID');
+    $token = env('TWILIO_AUTH_TOKEN');
+    $client = new Client($sid, $token);
+
+    try {
+        $sms = $client->messages->create(
+            "whatsapp:" . $to, // 👈 لاحظ هنا التغيير
+            [
+                'from' => env('TWILIO_WHATSAPP_FROM'),
+                'body' => $message,
+            ]
+        );
+
+        Log::info("✅ WhatsApp message sent to {$to} - SID: {$sms->sid}");
+        return true;
+    } catch (Exception $e) {
+        Log::error("❌ WhatsApp send failed to {$to}: " . $e->getMessage());
+        return false;
+    }
+}
+
 
 
     public function confirmPassword($request)
