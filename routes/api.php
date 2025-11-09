@@ -39,7 +39,7 @@ Route::prefix('courses')->group(function () {
 Route::prefix('lessons')->group(function () {
     Route::get('{course}', [LessonController::class, 'lessons']);
 });
-Route::group(['middleware' => ['auth:student', 'enforce.single.device']], function () {
+Route::group(['middleware' => ['auth:student', 'enforce.single.device', 'course.active']], function () {
     Route::prefix('videos')->group(function () {
         Route::get('{lesson}', [LessonController::class, 'getVideos']);
         Route::post('{video}/progress', [LessonController::class, 'progress']);

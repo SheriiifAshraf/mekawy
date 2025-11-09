@@ -72,5 +72,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'user-access' => \App\Http\Middleware\MultiAuthUser::class,
         'enforce.single.device' => \App\Http\Middleware\EnforceSingleDevice::class,
+        'course.active' => \App\Http\Middleware\EnsureCourseAccess::class,
     ];
 }

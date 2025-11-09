@@ -33,9 +33,94 @@ class LessonController extends Controller
         }
     }
 
+    // public function getVideos($lessonId, Request $request)
+    // {
+    //     $student = $request->user();
+    //     if (!$student) {
+    //         return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+    //     }
+
+    //     $lesson = Lesson::with([
+    //         'videos' => function ($q) {
+    //             $q->where('publish_at', '<=', now())
+    //                 ->when(
+    //                     Schema::hasColumn('videos', 'position'),
+    //                     fn($qq) => $qq->orderBy('position'),
+    //                     fn($qq) => $qq->orderBy('id')
+    //                 );
+    //         },
+    //         'course'
+    //     ])->find($lessonId);
+
+    //     if (!$lesson) {
+    //         return response()->json(['message' => 'Lesson not found.'], 404);
+    //     }
+
+    //     $isFreeCourse = (bool) ($lesson->course->free ?? false);
+    //     $isSubscribed = $isFreeCourse ? true : $student->subscriptions()
+    //         ->where('course_id', $lesson->course_id)
+    //         ->where('status', 1)
+    //         ->exists();
+
+    //     if (!$isFreeCourse && $isSubscribed) {
+    //         $previousLesson = Lesson::where('id', '<', $lesson->id)
+    //             ->where('course_id', $lesson->course_id)
+    //             ->orderBy('id', 'desc')
+    //             ->first();
+
+    //         if ($previousLesson) {
+    //             $existsUncompleted = DB::table('videos')
+    //                 ->where('lesson_id', $previousLesson->id)
+    //                 ->whereNotIn('id', function ($sub) use ($student) {
+    //                     $sub->from('videos_viewers')
+    //                         ->select('video_id')
+    //                         ->where('student_id', $student->id)
+    //                         ->where('completed', 1);
+    //                 })
+    //                 ->exists();
+
+    //             if ($existsUncompleted) {
+    //                 return response()->json([
+    //                     'success' => false,
+    //                     'message' => 'You must watch all videos of previous lessons before accessing this one.'
+    //                 ], 403);
+    //             }
+    //         }
+    //     }
+
+    //     $completedIds = DB::table('videos_viewers')
+    //         ->where('student_id', $student->id)
+    //         ->where('completed', 1)
+    //         ->pluck('video_id')
+    //         ->toArray();
+
+    //     $prevCompleted = true;
+    //     $prepared = $lesson->videos->map(function ($v) use (&$prevCompleted, $isSubscribed, $completedIds) {
+    //         $lockedSubscription = !$isSubscribed;
+    //         $lockedSequence     = !$prevCompleted;
+    //         $v->locked = $lockedSubscription || $lockedSequence;
+    //         $v->lock_reason = $lockedSubscription ? 'subscription' : ($lockedSequence ? 'sequence' : null);
+
+    //         $v->total_views = (int) DB::table('videos_viewers')
+    //             ->where('video_id', $v->id)
+    //             ->sum('view_count');
+
+    //         $prevCompleted = in_array($v->id, $completedIds);
+
+    //         return $v;
+    //     });
+
+    //     return response()->json([
+    //         'success'     => true,
+    //         'subscribed'  => $isSubscribed,
+    //         'data'        => VideoResource::collection($prepared),
+    //     ]);
+    // }
+
     public function getVideos($lessonId, Request $request)
     {
-        $student = $request->user();
+        // استخدم جارِد الطالب صراحةً
+        $student = auth('student')->user();
         if (!$student) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
@@ -44,7 +129,7 @@ class LessonController extends Controller
             'videos' => function ($q) {
                 $q->where('publish_at', '<=', now())
                     ->when(
-                        Schema::hasColumn('videos', 'position'),
+                        \Schema::hasColumn('videos', 'position'),
                         fn($qq) => $qq->orderBy('position'),
                         fn($qq) => $qq->orderBy('id')
                     );
@@ -57,34 +142,51 @@ class LessonController extends Controller
         }
 
         $isFreeCourse = (bool) ($lesson->course->free ?? false);
-        $isSubscribed = $isFreeCourse ? true : $student->subscriptions()
+
+        $hasActiveCode = \App\Models\Code::where('student_id', $student->id)
             ->where('course_id', $lesson->course_id)
-            ->where('status', 1)
+            ->where('type', 'course')
+            ->whereNull('canceled_at')
+            ->whereNotIn('status', ['canceled', 'expired'])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->exists();
 
-        if (!$isFreeCourse && $isSubscribed) {
-            $previousLesson = Lesson::where('id', '<', $lesson->id)
-                ->where('course_id', $lesson->course_id)
-                ->orderBy('id', 'desc')
-                ->first();
+        $isSubscribed = $isFreeCourse ? true : $hasActiveCode;
 
-            if ($previousLesson) {
-                $existsUncompleted = DB::table('videos')
-                    ->where('lesson_id', $previousLesson->id)
-                    ->whereNotIn('id', function ($sub) use ($student) {
-                        $sub->from('videos_viewers')
-                            ->select('video_id')
-                            ->where('student_id', $student->id)
-                            ->where('completed', 1);
-                    })
-                    ->exists();
+        // لو مش مجاني ومفيش كود فعّال → اقفل فورًا برسالة
+        if (!$isSubscribed) {
+            return response()->json([
+                'success' => false,
+                'subscribed' => false,
+                'message' => 'انتهت صلاحية وصولك إلى هذا الكورس أو لم تعد متاحة.',
+            ], 403);
+        }
 
-                if ($existsUncompleted) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You must watch all videos of previous lessons before accessing this one.'
-                    ], 403);
-                }
+        // (لو عايز تفضل على منطق القفل المتدرّج داخل القائمة، سيب البلوك ده على حاله)
+        $previousLesson = Lesson::where('id', '<', $lesson->id)
+            ->where('course_id', $lesson->course_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($previousLesson) {
+            $existsUncompleted = DB::table('videos')
+                ->where('lesson_id', $previousLesson->id)
+                ->whereNotIn('id', function ($sub) use ($student) {
+                    $sub->from('videos_viewers')
+                        ->select('video_id')
+                        ->where('student_id', $student->id)
+                        ->where('completed', 1);
+                })
+                ->exists();
+
+            if ($existsUncompleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must watch all videos of previous lessons before accessing this one.'
+                ], 403);
             }
         }
 
@@ -95,13 +197,11 @@ class LessonController extends Controller
             ->toArray();
 
         $prevCompleted = true;
-        $prepared = $lesson->videos->map(function ($v) use (&$prevCompleted, $isSubscribed, $completedIds) {
-            $lockedSubscription = !$isSubscribed;
-            $lockedSequence     = !$prevCompleted;
-            $v->locked = $lockedSubscription || $lockedSequence;
-            $v->lock_reason = $lockedSubscription ? 'subscription' : ($lockedSequence ? 'sequence' : null);
+        $prepared = $lesson->videos->map(function ($v) use (&$prevCompleted, $completedIds) {
+            $v->locked = !$prevCompleted;
+            $v->lock_reason = $prevCompleted ? null : 'sequence';
 
-            $v->total_views = (int) DB::table('videos_viewers')
+            $v->total_views = (int) \DB::table('videos_viewers')
                 ->where('video_id', $v->id)
                 ->sum('view_count');
 
@@ -112,10 +212,11 @@ class LessonController extends Controller
 
         return response()->json([
             'success'     => true,
-            'subscribed'  => $isSubscribed,
+            'subscribed'  => true,
             'data'        => VideoResource::collection($prepared),
         ]);
     }
+
 
     public function progress(Request $request, Video $video)
     {
