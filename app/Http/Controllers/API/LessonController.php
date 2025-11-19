@@ -144,27 +144,99 @@ class LessonController extends Controller
 
     public function progress(Request $request, Video $video)
     {
-        $student = $request->user();
+        // نستخدم جارِد الطالب صراحةً
+        $student = auth('student')->user();
         if (!$student) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
         }
-        $lesson = $video->lesson()->with(['videos' => function ($q) {
-            $q->when(Schema::hasColumn('videos', 'position'), fn($qq) => $qq->orderBy('position')->orderBy('id'), fn($qq) => $qq->orderBy('id'));
-        }, 'course'])->firstOrFail();
-        $isSubscribed = $lesson->course->free || $student->subscriptions()->where('course_id', $lesson->course_id)->where('status', 1)->exists();
+
+        // نجيب الدرس اللي تابع له الفيديو + كل فيديوهاته + الكورس
+        $lesson = $video->lesson()->with([
+            'videos' => function ($q) {
+                $q->when(
+                    \Schema::hasColumn('videos', 'position'),
+                    fn($qq) => $qq->orderBy('position')->orderBy('id'),
+                    fn($qq) => $qq->orderBy('id')
+                );
+            },
+            'course'
+        ])->firstOrFail();
+
+        // هل الكورس مجاني؟
+        $isFreeCourse = (bool) ($lesson->course->free ?? false);
+
+        // اشتراك فعّال في جدول الاشتراكات
+        $hasActiveSubscription = $student->subscriptions()
+            ->where('course_id', $lesson->course_id)
+            ->where('status', 1)
+            ->exists();
+
+        // كود فعّال للكورس (من جدول الأكواد)
+        $hasActiveCode = \App\Models\Code::where('student_id', $student->id)
+            ->where('course_id', $lesson->course_id)
+            ->where('type', 'course')
+            ->whereNull('canceled_at')
+            ->whereNotIn('status', ['canceled', 'expired'])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        // هل له وصول للكورس؟
+        $isSubscribed = $isFreeCourse || $hasActiveSubscription || $hasActiveCode;
+
         if (!$isSubscribed) {
-            return response()->json(['success' => false, 'message' => 'You must subscribe to access this video.'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'You must subscribe to access this video.',
+            ], 403);
         }
+
+        // نتأكد من تسلسل الفيديوهات (لازم يكون أنهى اللي قبله)
         $videos = $lesson->videos->values();
         $idx = $videos->search(fn($v) => $v->id === $video->id);
+
+        if ($idx === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Video not found in this lesson.',
+            ], 404);
+        }
+
         if ($idx > 0) {
             $prevId = $videos[$idx - 1]->id;
-            $prevCompleted = DB::table('videos_viewers')->where('student_id', $student->id)->where('video_id', $prevId)->where('completed', 1)->exists();
+
+            $prevCompleted = \DB::table('videos_viewers')
+                ->where('student_id', $student->id)
+                ->where('video_id', $prevId)
+                ->where('completed', 1)
+                ->exists();
+
             if (!$prevCompleted) {
-                return response()->json(['success' => false, 'message' => 'You must watch the previous video first.'], 403);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must watch the previous video first.',
+                ], 403);
             }
         }
-        DB::table('videos_viewers')->updateOrInsert(['student_id' => $student->id, 'video_id' => $video->id], ['view_count' => DB::raw('COALESCE(view_count,0) + 1'), 'completed' => 1, 'completed_at' => now(), 'updated_at' => now(),]);
-        return response()->json(['success' => true]);
+
+        // نسجّل/نحدّث مشاهدة الفيديو
+        \DB::table('videos_viewers')->updateOrInsert(
+            ['student_id' => $student->id, 'video_id' => $video->id],
+            [
+                'view_count'   => \DB::raw('COALESCE(view_count, 0) + 1'),
+                'completed'    => 1,
+                'completed_at' => now(),
+                'updated_at'   => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+        ]);
     }
 }
