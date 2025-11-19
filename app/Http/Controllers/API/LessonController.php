@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Models\Code;
 use App\Models\Video;
 use App\Models\Course;
 use App\Models\Lesson;
