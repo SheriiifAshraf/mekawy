@@ -65,6 +65,11 @@ class EnsureCourseAccess
             return $next($request);
         }
 
+        $hasActiveSubscription = $student->subscriptions()
+            ->where('course_id', $courseId)
+            ->where('status', 1)
+            ->exists();
+
         $hasActiveCode = Code::where('student_id', $student->id)
             ->where('course_id', $courseId)
             ->where('type', 'course')
@@ -76,7 +81,7 @@ class EnsureCourseAccess
             })
             ->exists();
 
-        if (!$hasActiveCode) {
+        if (!$hasActiveSubscription && !$hasActiveCode) {
             return response()->json([
                 'success' => false,
                 'message' => 'انتهت صلاحية وصولك إلى هذه الدورة أو لم تعد متاحة',

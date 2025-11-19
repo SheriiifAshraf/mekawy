@@ -143,7 +143,12 @@ class LessonController extends Controller
 
         $isFreeCourse = (bool) ($lesson->course->free ?? false);
 
-        $hasActiveCode = \App\Models\Code::where('student_id', $student->id)
+        $hasActiveSubscription = $student->subscriptions()
+            ->where('course_id', $lesson->course_id)
+            ->where('status', 1)
+            ->exists();
+
+        $hasActiveCode = Code::where('student_id', $student->id)
             ->where('course_id', $lesson->course_id)
             ->where('type', 'course')
             ->whereNull('canceled_at')
@@ -154,16 +159,16 @@ class LessonController extends Controller
             })
             ->exists();
 
-        $isSubscribed = $isFreeCourse ? true : $hasActiveCode;
+        $isSubscribed = $isFreeCourse || $hasActiveSubscription || $hasActiveCode;
 
-        // لو مش مجاني ومفيش كود فعّال → اقفل فورًا برسالة
         if (!$isSubscribed) {
             return response()->json([
-                'success' => false,
+                'success'    => false,
                 'subscribed' => false,
-                'message' => 'انتهت صلاحية وصولك إلى هذا الكورس أو لم تعد متاحة.',
+                'message'    => 'انتهت صلاحية وصولك إلى هذا الكورس أو لم تعد متاحة.',
             ], 403);
         }
+
 
         // (لو عايز تفضل على منطق القفل المتدرّج داخل القائمة، سيب البلوك ده على حاله)
         $previousLesson = Lesson::where('id', '<', $lesson->id)
@@ -233,10 +238,25 @@ class LessonController extends Controller
             );
         }, 'course'])->firstOrFail();
 
-        $isSubscribed = $lesson->course->free || $student->subscriptions()
+        $isFreeCourse = (bool) ($lesson->course->free ?? false);
+
+        $hasActiveSubscription = $student->subscriptions()
             ->where('course_id', $lesson->course_id)
             ->where('status', 1)
             ->exists();
+
+        $hasActiveCode = Code::where('student_id', $student->id)
+            ->where('course_id', $lesson->course_id)
+            ->where('type', 'course')
+            ->whereNull('canceled_at')
+            ->whereNotIn('status', ['canceled', 'expired'])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        $isSubscribed = $isFreeCourse || $hasActiveSubscription || $hasActiveCode;
 
         if (!$isSubscribed) {
             return response()->json([
@@ -244,6 +264,7 @@ class LessonController extends Controller
                 'message' => 'You must subscribe to access this video.'
             ], 403);
         }
+
 
         $videos = $lesson->videos->values();
         $idx = $videos->search(fn($v) => $v->id === $video->id);
